@@ -1,0 +1,42 @@
+# Mouse species configuration
+# Used by run_cross_species.py for species-specific analysis
+
+name: mouse
+description: "Mouse (top view)"
+
+# Model configuration
+model:
+  type: topviewmouse
+  use_keypoints: ${model.keypoint_presets.standard}  # 11 keypoints
+
+# Sample video for testing
+sample:
+  name: mouse_topview
+  url: "https://github.com/DeepLabCut/DeepLabCut/raw/main/examples/openfield-Pranav-2018-10-30/videos/m3v1mp4.mp4"
+
+# Action classification thresholds
+# Values are in body-lengths per second (normalized by body size)
+velocity_thresholds:
+  stationary: 0.5   # < 0.5 body-length/sec = stationary
+  walking: 3.0      # 0.5 - 3.0 body-length/sec = walking
+  # > 3.0 = running
+
+# Body size estimation
+body_size:
+  # Keypoints used to estimate body length
+  head_keypoint: nose
+  tail_keypoint: tail_base
+  # Alternative: use specific keypoints
+  # length_keypoints: [nose, mouse_center, tail_base]
+
+# Center of mass keypoint for trajectory
+center_keypoint: mouse_center
+center_fallback: [mid_back, neck]  # Fallbacks if primary not found
+
+# Behavior-specific settings
+behaviors:
+  # Grooming detection (mouse-specific)
+  grooming:
+    enabled: true
+    velocity_threshold: 0.3
+    head_movement_threshold: 50  # pixels

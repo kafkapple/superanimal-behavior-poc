@@ -1,0 +1,100 @@
+# SuperAnimal-Quadruped model configuration
+name: superanimal_quadruped
+model_name: hrnet_w32
+detector: fasterrcnn_resnet50_fpn
+
+# Model parameters
+video_adapt: false
+pseudo_threshold: 0.1
+bbox_threshold: 0.9
+
+# Scale list for multi-scale inference (optional)
+scale_list: null
+
+# Confidence threshold for keypoint visualization
+confidence_threshold: 0.3
+
+# ============================================================
+# Keypoint Presets for Quadruped
+# ============================================================
+keypoint_presets:
+  # Full: All 39 keypoints
+  full: null
+
+  # Standard (15): General pose analysis
+  standard:
+    - nose
+    - right_eye
+    - left_eye
+    - right_earbase
+    - left_earbase
+    - neck_base
+    - back_base
+    - back_end
+    - tail_base
+    - left_front_paw
+    - right_front_paw
+    - left_back_paw
+    - right_back_paw
+    - left_front_elbow
+    - right_front_elbow
+
+  # Minimal (7): Basic tracking
+  minimal:
+    - nose
+    - neck_base
+    - back_middle
+    - tail_base
+    - left_front_paw
+    - right_front_paw
+    - left_back_paw
+
+# Active keypoint configuration
+use_keypoints: ${model.keypoint_presets.standard}  # Default: 15 keypoints (balanced)
+
+# Keypoints definition (39 keypoints)
+keypoints:
+  - nose
+  - upper_jaw
+  - lower_jaw
+  - mouth_end_right
+  - mouth_end_left
+  - right_eye
+  - right_earbase
+  - right_earend
+  - right_antler_base
+  - right_antler_end
+  - left_eye
+  - left_earbase
+  - left_earend
+  - left_antler_base
+  - left_antler_end
+  - neck_base
+  - neck_end
+  - throat_base
+  - throat_end
+  - back_base
+  - back_end
+  - back_middle
+  - tail_base
+  - tail_end
+  - tail_middle
+  - left_front_hoof
+  - left_front_knee
+  - left_front_paw
+  - left_front_elbow
+  - right_front_hoof
+  - right_front_knee
+  - right_front_paw
+  - right_front_elbow
+  - left_back_hoof
+  - left_back_knee
+  - left_back_paw
+  - left_back_elbow
+  - right_back_hoof
+  - right_back_knee
+  - right_back_paw
+  - right_back_elbow
+  - belly_bottom
+
+num_keypoints: 39

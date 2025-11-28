@@ -1,0 +1,42 @@
+# Behavior analysis configuration
+analysis:
+  # Motion analysis
+  motion:
+    enabled: true
+    velocity_smoothing: 5  # frames for smoothing
+    acceleration_smoothing: 5
+
+  # Distance metrics
+  distance:
+    enabled: true
+    reference_keypoint: mouse_center  # or nose for quadruped
+
+  # Behavior classification
+  classification:
+    enabled: true
+    behaviors:
+      - name: resting
+        velocity_threshold: 0.5  # pixels/frame
+      - name: walking
+        velocity_threshold_min: 0.5
+        velocity_threshold_max: 5.0
+      - name: running
+        velocity_threshold_min: 5.0
+      - name: rearing
+        # For topview mouse - based on body area change
+        area_change_threshold: 0.3
+      - name: grooming
+        # Based on paw proximity to face
+        paw_face_distance: 20
+
+# Visualization settings
+visualization:
+  plot_trajectory: true
+  plot_velocity: true
+  plot_behavior_timeline: true
+  colormap: viridis
+
+# Statistical output
+statistics:
+  compute_summary: true
+  time_bins: 60  # seconds per bin for temporal analysis

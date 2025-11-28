@@ -1,0 +1,114 @@
+# SuperAnimal-TopViewMouse model configuration
+# Documentation: docs/keypoint_paradigms.md
+name: superanimal_topviewmouse
+model_name: hrnet_w32
+detector: fasterrcnn_resnet50_fpn
+
+# Model parameters
+video_adapt: false
+pseudo_threshold: 0.1
+bbox_threshold: 0.9
+
+# Scale list for multi-scale inference (optional)
+scale_list: null  # e.g., [200, 300, 400, 500]
+
+# Confidence threshold for keypoint visualization
+confidence_threshold: 0.3
+
+# ============================================================
+# Keypoint Presets - See docs/keypoint_paradigms.md for details
+# ============================================================
+
+keypoint_presets:
+  # Full: All 27 keypoints for detailed pose analysis
+  full: null  # null means use all keypoints
+
+  # Standard (11): General behavior analysis, Open Field Test
+  standard:
+    - nose
+    - left_ear
+    - right_ear
+    - neck
+    - mouse_center
+    - left_shoulder
+    - right_shoulder
+    - left_hip
+    - right_hip
+    - tail_base
+    - tail_end
+
+  # MARS (7): Social behavior analysis, multi-animal tracking
+  mars:
+    - nose
+    - left_ear
+    - right_ear
+    - neck
+    - left_hip
+    - right_hip
+    - tail_base
+
+  # Locomotion (6): Movement/gait analysis
+  locomotion:
+    - nose
+    - neck
+    - mouse_center
+    - tail_base
+    - tail_end
+
+  # Minimal (3): Basic tracking, fastest processing
+  # Required minimum: nose, mouse_center, tail_base
+  minimal:
+    - nose
+    - mouse_center
+    - tail_base
+
+# Active keypoint configuration
+# Options: null (all), or use preset name, or custom list
+# Examples:
+#   use_keypoints: null                    # All 27 keypoints
+#   use_keypoints: ${model.keypoint_presets.standard}  # 11 keypoints
+#   use_keypoints: ${model.keypoint_presets.minimal}   # 3 keypoints
+#   use_keypoints: [nose, mouse_center, tail_base]  # Custom
+use_keypoints: ${model.keypoint_presets.standard}  # Default: 11 keypoints (balanced)
+
+# ============================================================
+# Multi-preset comparison for reports
+# ============================================================
+comparison_presets:
+  - full
+  - standard
+  - minimal
+
+# ============================================================
+# All available keypoints from DLC 3.0 SuperAnimal-TopViewMouse
+# ============================================================
+keypoints:
+  - nose
+  - left_ear
+  - right_ear
+  - left_ear_tip
+  - right_ear_tip
+  - left_eye
+  - right_eye
+  - neck
+  - mid_back
+  - mouse_center
+  - mid_backend
+  - mid_backend2
+  - mid_backend3
+  - tail_base
+  - tail1
+  - tail2
+  - tail3
+  - tail4
+  - tail5
+  - left_shoulder
+  - left_midside
+  - left_hip
+  - right_shoulder
+  - right_midside
+  - right_hip
+  - tail_end
+  - head_midpoint
+
+num_keypoints: 27

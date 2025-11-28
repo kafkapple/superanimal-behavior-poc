@@ -1,0 +1,103 @@
+# Main Hydra configuration
+defaults:
+  - model: topviewmouse
+  - data: sample
+  - behavior: default
+  - _self_
+
+# Experiment ID (auto-generated timestamp + model name)
+experiment_id: ${now:%Y%m%d_%H%M%S}_${model.name}
+
+# Output directories
+paths:
+  root: ${hydra:runtime.cwd}
+  data: ${paths.root}/data
+  outputs: ${paths.root}/outputs
+  experiments: ${paths.outputs}/experiments/${experiment_id}
+  comprehensive: ${paths.outputs}/comprehensive
+  logs: ${paths.outputs}/logs
+
+# General settings
+seed: 42
+device: auto  # auto, cuda, mps, cpu
+verbose: true
+
+# Input settings (optional - overrides default sample)
+input: null  # Path to video file or image directory
+
+# ============================================================
+# Execution Modes (used by run_comprehensive.py / run_all.sh)
+# ============================================================
+modes:
+  debug:
+    max_frames: 50
+    gif_max_frames: 60       # 2x increased
+    species: [mouse]
+    presets: [full, minimal]
+    gifs: false
+    models: [superanimal]
+    description: "Quick test (~2 min)"
+
+  debug_full:
+    max_frames: 50
+    gif_max_frames: 60       # 2x increased
+    species: [mouse, dog, horse]
+    presets: [full, standard, mars, locomotion, minimal]
+    gifs: true
+    models: [superanimal, yolo_pose]
+    description: "All combinations, minimal frames (~7 min)"
+
+  standard:
+    max_frames: 200
+    gif_max_frames: 160      # 2x increased (was 80)
+    species: [mouse, dog]
+    presets: [full, standard, minimal]
+    gifs: true
+    models: [superanimal]
+    description: "Balanced analysis (~10 min)"
+
+  full:
+    max_frames: 300
+    gif_max_frames: 200      # 2x increased (was 100)
+    species: [mouse, dog, horse]
+    presets: [full, standard, mars, locomotion, minimal]
+    gifs: true
+    models: [superanimal, yolo_pose]
+    description: "Complete analysis (~30 min)"
+
+# Default mode
+mode: standard
+
+# Cross-species comparison settings
+species:
+  - mouse
+  - dog
+
+# Keypoint presets for comparison
+presets:
+  - full
+  - standard
+  - minimal
+
+# Report settings
+report:
+  html: true          # Generate HTML report
+  gifs: true          # Generate action GIF animations
+  gifs_per_action: 2  # Max GIF samples per action type
+  gif_fps: 8          # GIF animation frame rate
+  gif_max_frames: 200 # Max frames per GIF (2x increased, was 100)
+  gif_duration_sec: 4.0  # Target duration for each GIF segment
+  # Preset x Action comparison GIFs
+  preset_action_gifs: true  # Generate GIFs for each preset x action combination
+  preset_gif_frames: 80     # Frames per preset comparison GIF
+
+# Hydra settings - experiments saved to outputs/experiments/
+hydra:
+  run:
+    dir: ${paths.experiments}
+  sweep:
+    dir: ${paths.experiments}
+    subdir: ${hydra.job.num}
+  output_subdir: .hydra
+  job:
+    chdir: true  # Change working directory to experiment folder

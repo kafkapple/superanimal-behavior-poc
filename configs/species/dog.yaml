@@ -1,0 +1,42 @@
+# Dog species configuration
+# Used by run_cross_species.py for species-specific analysis
+
+name: dog
+description: "Dog (side view)"
+
+# Model configuration
+model:
+  type: quadruped
+  use_keypoints: ${model.keypoint_presets.standard}  # 15 keypoints
+
+# Sample video for testing
+sample:
+  name: dog_walking
+  url: "https://raw.githubusercontent.com/curibe/test-webrtc/main/dog_clip.avi"
+
+# Action classification thresholds
+# Values are in body-lengths per second (normalized by body size)
+velocity_thresholds:
+  stationary: 0.5   # < 0.5 body-length/sec = stationary
+  walking: 2.5      # 0.5 - 2.5 body-length/sec = walking
+  # > 2.5 = running
+
+# Body size estimation
+body_size:
+  # Keypoints used to estimate body length (nose to tail)
+  head_keypoint: nose
+  tail_keypoint: tail_base
+  # Alternative measurement points
+  # length_keypoints: [nose, neck_base, back_middle, tail_base]
+
+# Center of mass keypoint for trajectory
+center_keypoint: back_middle
+center_fallback: [neck_base, back_base]
+
+# Behavior-specific settings
+behaviors:
+  # Tail wagging detection (dog-specific)
+  tail_wagging:
+    enabled: true
+    frequency_threshold: 2.0  # Hz
+    amplitude_threshold: 30   # pixels

@@ -112,24 +112,95 @@ superanimal-behavior-poc/
 
 ---
 
+## Configuration
+
+### 모델 선택
+
+```bash
+# TopViewMouse (기본) - 마우스 top-view 분석
+python run.py model=topviewmouse
+
+# Quadruped - 4족 동물 (개, 고양이, 말 등)
+python run.py model=quadruped
+
+# 커스텀 비디오 사용
+python run.py input=/path/to/video.mp4 model=quadruped
+```
+
+### 주요 파라미터
+
+```bash
+# 프레임 수 제한
+python run.py data.video.max_frames=100
+
+# Device 선택
+python run.py device=cuda    # NVIDIA GPU
+python run.py device=mps     # Apple Silicon
+python run.py device=cpu     # CPU
+
+# Confidence threshold 조정
+python run.py model.confidence_threshold=0.5
+
+# 키포인트 프리셋 선택
+python run.py model.use_keypoints='${model.keypoint_presets.minimal}'
+```
+
+### Config 파일 직접 수정
+
+```yaml
+# configs/config.yaml
+defaults:
+  - model: quadruped    # topviewmouse 또는 quadruped
+  - data: sample
+
+device: auto            # auto, cuda, mps, cpu
+seed: 42
+
+# configs/model/topviewmouse.yaml
+video_adapt: false      # true: 더 정확하지만 느림
+confidence_threshold: 0.3
+use_keypoints: ${model.keypoint_presets.standard}  # full, standard, mars, locomotion, minimal
+```
+
+---
+
 ## Models
 
 ### Keypoint Extraction (Pose Estimation)
 
-| Model | Keypoints | Species | Source |
-|-------|-----------|---------|--------|
-| **SuperAnimal-TopViewMouse** | 27 | Mouse | DeepLabCut 3.0 |
-| **SuperAnimal-Quadruped** | 39 | Dog, Cat, Horse | DeepLabCut 3.0 |
-| **YOLO Pose** | 17 | General | Ultralytics |
+| Model | Keypoints | Species | Config | Command |
+|-------|-----------|---------|--------|---------|
+| **TopViewMouse** | 27 | Mouse (top-view) | `model=topviewmouse` | `python run.py` |
+| **Quadruped** | 39 | Dog, Cat, Horse | `model=quadruped` | `python run.py model=quadruped` |
+| **YOLO Pose** | 17 | General | - | `--models yolo_pose` |
+
+### TopViewMouse 키포인트 (27개)
+
+| Region | Keypoints |
+|--------|-----------|
+| Head (8) | nose, left_ear, right_ear, left_ear_tip, right_ear_tip, left_eye, right_eye, head_midpoint |
+| Body (6) | neck, mid_back, mouse_center, mid_backend, mid_backend2, mid_backend3 |
+| Tail (7) | tail_base, tail1, tail2, tail3, tail4, tail5, tail_end |
+| Limbs (6) | left_shoulder, right_shoulder, left_hip, right_hip, left_midside, right_midside |
+
+### Quadruped 키포인트 (39개)
+
+| Region | Keypoints |
+|--------|-----------|
+| Head | nose, upper_jaw, lower_jaw, left_eye, right_eye, left_ear, right_ear |
+| Body | neck_base, neck_end, back_base, back_middle, back_end, belly_bottom |
+| Tail | tail_base, tail_middle, tail_end |
+| Front Legs | left/right_front_paw, elbow, knee, hoof |
+| Back Legs | left/right_back_paw, elbow, knee, hoof |
 
 ### Action Recognition (Behavior Classification)
 
-| Model | Accuracy | F1 | Training |
+| Model | Accuracy | F1 | Use Case |
 |-------|----------|-----|----------|
-| **LSTM** | 96.1% | 95.6% | Supervised |
-| **MLP** | 92.7% | 92.0% | Supervised |
-| **Transformer** | 85.2% | 86.4% | Supervised |
-| **Rule-Based** | 32.0% | 12.1% | None |
+| **LSTM** | 96.1% | 95.6% | 시계열 패턴 (Best) |
+| **MLP** | 92.7% | 92.0% | 프레임 단위 분류 |
+| **Transformer** | 85.2% | 86.4% | 장거리 의존성 |
+| **Rule-Based** | 32.0% | 12.1% | Baseline only |
 
 ---
 

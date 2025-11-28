@@ -1,17 +1,17 @@
 #!/bin/bash
 # =============================================================================
-# SuperAnimal Behavior PoC - Unified Pipeline Runner
+# SuperAnimal Behavior PoC - 통합 실행 스크립트
 # =============================================================================
 #
-# All experiments are run through run_comprehensive.py for consistency.
-# This script provides a simple bash interface with the same options.
+# 전체 파이프라인을 한 번에 실행:
+#   1. 키포인트 추출 (run.py, run_keypoint_comparison.py, run_cross_species.py)
+#   2. 행동 인식 모델 평가 (run_evaluation.py)
 #
 # Usage:
-#   ./run_all.sh                    # Standard mode (~10 min)
-#   ./run_all.sh --debug            # Quick test (~2 min)
-#   ./run_all.sh --debug-full       # All combinations, minimal frames (~5 min)
-#   ./run_all.sh --all              # Full analysis (~30 min)
-#   ./run_all.sh --help             # Show help
+#   ./run_all.sh                    # 표준 모드 (~10 min)
+#   ./run_all.sh --debug            # 빠른 테스트 (~3 min)
+#   ./run_all.sh --full             # 전체 분석 (~30 min)
+#   ./run_all.sh --help             # 도움말
 #
 # =============================================================================
 
@@ -23,20 +23,33 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
-# Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+OUTPUT_BASE="outputs/full_pipeline/${TIMESTAMP}"
 
 # =============================================================================
 # Helper Functions
 # =============================================================================
 
-print_header() {
+print_banner() {
     echo ""
-    echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BLUE}  $1${NC}"
-    echo -e "${BLUE}══════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║   SuperAnimal Behavior PoC - 통합 파이프라인                       ║${NC}"
+    echo -e "${CYAN}║                                                                  ║${NC}"
+    echo -e "${CYAN}║   Step 1: Keypoint Extraction (Pose Estimation)                  ║${NC}"
+    echo -e "${CYAN}║   Step 2: Action Recognition (Behavior Classification)           ║${NC}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+}
+
+print_step() {
+    echo ""
+    echo -e "${MAGENTA}──────────────────────────────────────────────────────────────────${NC}"
+    echo -e "${MAGENTA}  STEP $1: $2${NC}"
+    echo -e "${MAGENTA}──────────────────────────────────────────────────────────────────${NC}"
     echo ""
 }
 
@@ -54,81 +67,54 @@ print_info() {
 
 show_help() {
     cat << 'EOF'
-SuperAnimal Behavior PoC - Unified Pipeline Runner
+SuperAnimal Behavior PoC - 통합 실행 스크립트
 
 Usage: ./run_all.sh [MODE] [OPTIONS]
 
-MODES (choose one):
-    --debug, -d          Quick test: mouse only, 50 frames (~2 min)
-    --debug-full, -df    All combinations with minimal 20 frames (~5 min) ⭐
-    (default)            Standard: mouse+dog, 200 frames (~10 min)
-    --all, -a            Full analysis: all species/presets/models (~30 min)
+모드 (하나 선택):
+    --debug, -d          빠른 테스트 (~3 min)
+                         - 키포인트: mouse, 50 frames
+                         - 평가: rule_based + mlp, 5 epochs
 
-OPTIONS:
-    --species SPECIES    Comma-separated species (e.g., mouse,dog,horse)
-    --presets PRESETS    Comma-separated presets (e.g., full,standard,minimal)
-    --max-frames N       Maximum frames per video
-    --output DIR         Output directory
-    --labels FILE        Ground truth labels file (CSV, JSON, TXT, or NPY)
-    --visualize-only     Skip experiments, regenerate visualizations only
-    --input DIR          Input directory for --visualize-only
-    --verbose, -v        Verbose output
-    --help, -h           Show this help message
+    (default)            표준 모드 (~10 min)
+                         - 키포인트: mouse + dog, 200 frames
+                         - 평가: all models, 20 epochs
 
-EXAMPLES:
-    # Quick validation (~2 min)
-    ./run_all.sh --debug
+    --full, -f           전체 분석 (~30 min)
+                         - 키포인트: 모든 종, 300 frames
+                         - 평가: all models, 50 epochs
 
-    # All combinations with minimal data - great for testing (~5 min)
-    ./run_all.sh --debug-full
+옵션:
+    --keypoint-only      키포인트 추출만 실행
+    --eval-only          평가만 실행
+    --verbose, -v        상세 출력
+    --help, -h           도움말 표시
 
-    # Standard analysis (~10 min)
-    ./run_all.sh
+예시:
+    ./run_all.sh --debug           # 빠른 테스트 (~3 min)
+    ./run_all.sh                   # 표준 실행 (~10 min)
+    ./run_all.sh --full            # 전체 분석 (~30 min)
+    ./run_all.sh --eval-only       # 평가만 실행
 
-    # Full comprehensive analysis (~30 min)
-    ./run_all.sh --all
+모드 비교:
+    ┌─────────────┬────────────────────────────┬────────────────────────────┬──────────┐
+    │ 모드        │ 키포인트 추출              │ 모델 평가                  │ 예상시간 │
+    ├─────────────┼────────────────────────────┼────────────────────────────┼──────────┤
+    │ --debug     │ mouse, 50 frames           │ rule_based + mlp, 5 epochs │ ~3 min   │
+    │ (default)   │ mouse + dog, 200 frames    │ all models, 20 epochs      │ ~10 min  │
+    │ --full      │ all species, 300 frames    │ all models, 50 epochs      │ ~30 min  │
+    └─────────────┴────────────────────────────┴────────────────────────────┴──────────┘
 
-    # Custom: specific species and presets
-    ./run_all.sh --species mouse,dog --presets full,standard,minimal
-
-    # Custom: limit frames
-    ./run_all.sh --all --max-frames 100
-
-    # With ground truth labels for F1/Accuracy evaluation
-    ./run_all.sh --labels data/labels.csv
-
-    # Regenerate visualizations from existing results
-    ./run_all.sh --visualize-only --input outputs/comprehensive/20241127_123456
-
-MODE COMPARISON:
-    ┌─────────────┬──────────┬────────┬─────────┬──────────┬────────┐
-    │ Mode        │ Frames   │ Species│ Presets │ Models   │ Time   │
-    ├─────────────┼──────────┼────────┼─────────┼──────────┼────────┤
-    │ --debug     │ 50       │ 1      │ 2       │ 1        │ ~2 min │
-    │ --debug-full│ 20       │ 3      │ 5       │ ALL      │ ~5 min │
-    │ (default)   │ 200      │ 2      │ 3       │ 1        │ ~10min │
-    │ --all       │ 300      │ 3      │ 5       │ ALL      │ ~30min │
-    └─────────────┴──────────┴────────┴─────────┴──────────┴────────┘
-
-OUTPUT:
-    Results saved to: outputs/comprehensive/<timestamp>/
-    ├── single_video/           # Per-species analysis
-    ├── keypoint_comparison/    # Preset comparison results
-    ├── cross_species/          # Cross-species comparison
-    ├── visualizations/         # Charts and plots
+출력 구조:
+    outputs/
+    ├── full_pipeline/<timestamp>/   # 키포인트 & 시각화 결과
+    │   ├── single_video/
     │   ├── keypoint_comparison/
-    │   │   ├── hierarchical_action_comparison_*.png
-    │   │   ├── confusion_matrix_grid_*.png
-    │   │   └── performance_metrics.json
-    │   ├── ground_truth_evaluation/  # When --labels provided
-    │   │   ├── gt_metrics_report.json  # F1/Accuracy per preset
-    │   │   └── gifs/
-    │   │       ├── gt_comparison_*.gif     # Pred vs GT overlay
-    │   │       └── per_class_acc_*.gif     # Per-class accuracy
-    │   └── species_comparison/
-    ├── report/
-    │   └── dashboard.html
-    └── final_dashboard.html    # Main dashboard (auto-opens)
+    │   └── cross_species/
+    │
+    └── evaluation/                  # 모델 평가 결과
+        ├── evaluation_results.json
+        └── models/
 
 EOF
 }
@@ -138,81 +124,40 @@ EOF
 # =============================================================================
 
 main() {
-    print_header "SuperAnimal Behavior PoC - Pipeline Runner"
+    print_banner
 
-    # Build command arguments
-    local cmd_args=""
-    local mode_set=false
+    # Default values
+    local mode="standard"
+    local run_keypoint=true
+    local run_eval=true
+    local verbose=""
 
-    # Parse arguments and pass through to Python
+    # Parse arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
             --debug|-d)
-                if [ "$mode_set" = false ]; then
-                    cmd_args="$cmd_args --debug"
-                    mode_set=true
-                fi
+                mode="debug"
                 shift
                 ;;
-            --debug-full|-df)
-                if [ "$mode_set" = false ]; then
-                    cmd_args="$cmd_args --debug-full"
-                    mode_set=true
-                fi
+            --full|-f)
+                mode="full"
                 shift
                 ;;
-            --all|-a|--comprehensive|-c)
-                if [ "$mode_set" = false ]; then
-                    cmd_args="$cmd_args --all"
-                    mode_set=true
-                fi
+            --keypoint-only)
+                run_eval=false
                 shift
                 ;;
-            --species|-s)
-                cmd_args="$cmd_args --species $2"
-                shift 2
-                ;;
-            --presets|-p)
-                cmd_args="$cmd_args --presets $2"
-                shift 2
-                ;;
-            --max-frames|-m)
-                cmd_args="$cmd_args --max-frames $2"
-                shift 2
-                ;;
-            --output|-o)
-                cmd_args="$cmd_args --output $2"
-                shift 2
-                ;;
-            --visualize-only)
-                cmd_args="$cmd_args --visualize-only"
+            --eval-only)
+                run_keypoint=false
                 shift
-                ;;
-            --input|-i)
-                cmd_args="$cmd_args --input $2"
-                shift 2
-                ;;
-            --labels|-l)
-                cmd_args="$cmd_args --labels $2"
-                shift 2
                 ;;
             --verbose|-v)
-                cmd_args="$cmd_args --verbose"
+                verbose="-v"
                 shift
                 ;;
             --help|-h)
                 show_help
                 exit 0
-                ;;
-            --debug-only)
-                # Legacy support
-                cmd_args="$cmd_args --debug"
-                mode_set=true
-                shift
-                ;;
-            --full-only)
-                # Legacy support - now same as default
-                shift
                 ;;
             *)
                 echo -e "${RED}Unknown option: $1${NC}"
@@ -222,45 +167,134 @@ main() {
         esac
     done
 
-    # Show configuration
-    if [[ "$cmd_args" == *"--debug-full"* ]]; then
-        print_info "Mode: DEBUG-FULL (all combinations, 20 frames, ~5 min)"
-    elif [[ "$cmd_args" == *"--debug"* ]]; then
-        print_info "Mode: DEBUG (quick test, 50 frames, ~2 min)"
-    elif [[ "$cmd_args" == *"--all"* ]]; then
-        print_info "Mode: FULL (all species/presets/models, 300 frames, ~30 min)"
-    else
-        print_info "Mode: STANDARD (mouse+dog, 200 frames, ~10 min)"
-    fi
+    # Set mode-specific parameters
+    local max_frames=200
+    local eval_mode="quick"
 
+    case $mode in
+        debug)
+            max_frames=50
+            eval_mode="demo"
+            print_info "모드: DEBUG (빠른 테스트, ~3 min)"
+            ;;
+        standard)
+            max_frames=200
+            eval_mode="quick"
+            print_info "모드: STANDARD (표준 평가, ~10 min)"
+            ;;
+        full)
+            max_frames=300
+            eval_mode="full"
+            print_info "모드: FULL (전체 분석, ~30 min)"
+            ;;
+    esac
+
+    echo ""
     cd "${SCRIPT_DIR}"
+    mkdir -p "${OUTPUT_BASE}"
 
-    # Run the Python script
-    echo ""
-    print_info "Running: python run_comprehensive.py $cmd_args"
-    echo ""
+    local step=1
+    local total_steps=0
+    [[ "$run_keypoint" == true ]] && ((total_steps+=3))
+    [[ "$run_eval" == true ]] && ((total_steps++))
 
-    if python run_comprehensive.py $cmd_args; then
-        echo ""
-        print_header "Pipeline Complete!"
-        print_success "Check the output directory for results"
+    # =========================================================================
+    # STEP 1: 단일 비디오 분석
+    # =========================================================================
+    if [[ "$run_keypoint" == true ]]; then
+        print_step "$step/$total_steps" "단일 비디오 분석 (run.py)"
 
-        # Find and open the latest dashboard
-        local latest_output=$(ls -td outputs/comprehensive/*/ 2>/dev/null | head -1)
-        if [ -n "$latest_output" ] && [ -f "${latest_output}final_dashboard.html" ]; then
-            print_info "Dashboard: ${latest_output}final_dashboard.html"
-            # Try to open in browser (macOS or Linux)
-            if command -v open &> /dev/null; then
-                open "${latest_output}final_dashboard.html" 2>/dev/null || true
-            elif command -v xdg-open &> /dev/null; then
-                xdg-open "${latest_output}final_dashboard.html" 2>/dev/null || true
-            fi
+        print_info "실행: python run.py data.video.max_frames=$max_frames"
+
+        if python run.py data.video.max_frames=$max_frames; then
+            print_success "단일 비디오 분석 완료!"
+        else
+            print_error "단일 비디오 분석 실패!"
+            exit 1
         fi
-    else
-        echo ""
-        print_error "Pipeline failed!"
-        exit 1
+        ((step++))
+
+        # =====================================================================
+        # STEP 2: 키포인트 프리셋 비교
+        # =====================================================================
+        print_step "$step/$total_steps" "키포인트 프리셋 비교 (run_keypoint_comparison.py)"
+
+        print_info "실행: python run_keypoint_comparison.py data.video.max_frames=$max_frames"
+
+        if python run_keypoint_comparison.py data.video.max_frames=$max_frames; then
+            print_success "키포인트 프리셋 비교 완료!"
+        else
+            print_error "키포인트 프리셋 비교 실패!"
+            exit 1
+        fi
+        ((step++))
+
+        # =====================================================================
+        # STEP 3: Cross-Species 비교
+        # =====================================================================
+        print_step "$step/$total_steps" "Cross-Species 비교 (run_cross_species.py)"
+
+        print_info "실행: python run_cross_species.py data.video.max_frames=$max_frames"
+
+        if python run_cross_species.py data.video.max_frames=$max_frames; then
+            print_success "Cross-Species 비교 완료!"
+        else
+            print_error "Cross-Species 비교 실패!"
+            exit 1
+        fi
+        ((step++))
     fi
+
+    # =========================================================================
+    # STEP 4: 행동 인식 모델 평가
+    # =========================================================================
+    if [[ "$run_eval" == true ]]; then
+        print_step "$step/$total_steps" "행동 인식 모델 평가 (run_evaluation.py)"
+
+        print_info "실행: python run_evaluation.py --mode $eval_mode"
+
+        if python run_evaluation.py --mode $eval_mode; then
+            print_success "모델 평가 완료!"
+        else
+            print_error "모델 평가 실패!"
+            exit 1
+        fi
+        ((step++))
+    fi
+
+    # =========================================================================
+    # 최종 요약
+    # =========================================================================
+    echo ""
+    echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║   🎉 전체 파이프라인 완료!                                         ║${NC}"
+    echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    echo -e "${CYAN}결과 위치:${NC}"
+    if [[ "$run_keypoint" == true ]]; then
+        echo -e "  - 키포인트 결과: outputs/ (각 스크립트별 출력)"
+    fi
+    if [[ "$run_eval" == true ]]; then
+        echo -e "  - 평가 결과: outputs/evaluation/evaluation_results.json"
+    fi
+    echo ""
+
+    # Show evaluation summary
+    if [[ "$run_eval" == true ]] && [ -f "outputs/evaluation/evaluation_results.json" ]; then
+        echo -e "${CYAN}모델 평가 요약:${NC}"
+        python3 -c "
+import json
+with open('outputs/evaluation/evaluation_results.json') as f:
+    data = json.load(f)
+print(f\"  Best Model: {data['best_model']}\")
+print(f\"  Best Accuracy: {data['best_accuracy']:.1%}\")
+print(f\"  Best F1: {data['best_f1']:.4f}\")
+" 2>/dev/null || true
+        echo ""
+    fi
+
+    print_success "완료!"
 }
 
 # Run main with all arguments
